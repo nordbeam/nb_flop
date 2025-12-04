@@ -1,0 +1,8 @@
+/_build/
+/deps/
+/node_modules/
+*.beam
+*.ez
+erl_crash.dump
+*.swp
+.DS_Store
