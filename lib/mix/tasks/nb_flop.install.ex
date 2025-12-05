@@ -492,11 +492,12 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
     defp maybe_generate_sample_table(igniter, false), do: igniter
 
     defp maybe_generate_sample_table(igniter, true) do
-      app_module = Igniter.Project.Application.app_name(igniter) |> Macro.camelize()
+      app_name = Igniter.Project.Application.app_name(igniter)
+      app_module = String.to_atom(Macro.camelize(to_string(app_name)))
       web_module = Igniter.Libs.Phoenix.web_module(igniter)
-      schema_module = Module.concat([app_module, "Examples", "Item"])
-      tables_module = Module.concat([web_module, "Tables", "ExampleTable"])
-      repo_module = Module.concat([app_module, "Repo"])
+      schema_module = Module.concat([app_module, Examples, Item])
+      tables_module = Module.concat([web_module, Tables, ExampleTable])
+      repo_module = Module.concat([app_module, Repo])
 
       # Create the example schema first
       schema_content = """
