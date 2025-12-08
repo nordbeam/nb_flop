@@ -178,7 +178,12 @@ export function flopToQueryParams(
     params.filters.forEach((filter, index) => {
       query[`filters[${index}][field]`] = filter.field;
       query[`filters[${index}][op]`] = filter.op;
-      query[`filters[${index}][value]`] = String(filter.value);
+      // Handle array values for operators like 'in' - use bracket notation
+      if (Array.isArray(filter.value)) {
+        query[`filters[${index}][value][]`] = filter.value.map(String);
+      } else {
+        query[`filters[${index}][value]`] = String(filter.value);
+      }
     });
   }
 
