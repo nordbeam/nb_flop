@@ -123,7 +123,7 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
   const navigate = useCallback(
     (query: Record<string, unknown>) => {
       router.visit(baseUrl, {
-        data: query,
+        data: query as Record<string, string>,
         preserveState: true,
         preserveScroll: true,
       });
@@ -445,7 +445,8 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
           <div className="flex items-center justify-end gap-2">
             {resource.actions.map((action) => {
               // Check per-row action state for hidden/disabled
-              const rowActionState = row.actions?.[action.name];
+              const rowActions = (row as Record<string, unknown>).actions as Record<string, { hidden?: boolean; disabled?: boolean }> | undefined;
+              const rowActionState = rowActions?.[action.name];
               if (rowActionState?.hidden) return null;
 
               if (renderAction) {
