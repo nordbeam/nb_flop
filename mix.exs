@@ -34,9 +34,9 @@ defmodule NbFlop.MixProject do
       # Installer framework
       {:igniter, "~> 0.7", optional: true},
 
-      # Optional integrations (use path for local development)
-      {:nb_serializer, path: "../nb_serializer", optional: true, override: true},
-      {:nb_inertia, path: "../nb_inertia", optional: true, runtime: false},
+      # Optional integrations
+      {:nb_serializer, github: "nordbeam/nb_serializer", optional: true},
+      {:nb_inertia, github: "nordbeam/nb_inertia", optional: true, runtime: false},
 
       # Phoenix for token generation (optional)
       {:phoenix, "~> 1.7", optional: true},
