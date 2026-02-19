@@ -22,11 +22,18 @@ import { Pagination } from './Pagination';
 import { SearchInput } from '@/components/SearchInput';
 import { FilterBar } from './FilterBar';
 
+export interface ActionResult {
+  success: boolean;
+  message?: string;
+  redirect?: string;
+  count?: number;
+}
+
 export interface TableProps<T = Record<string, unknown>> {
   /** The table resource from backend */
   resource: TableResource<T>;
-  /** Base URL for navigation (e.g., "/users") */
-  baseUrl: string;
+  /** Base URL for navigation (e.g., "/users") — used with Inertia transport */
+  baseUrl?: string;
   /** Custom row renderer (optional - uses columns from resource by default) */
   renderRow?: (row: T, columns: TableColumn[]) => React.ReactNode;
   /** Custom cell renderer for specific column types */
@@ -45,6 +52,17 @@ export interface TableProps<T = Record<string, unknown>> {
   footer?: React.ReactNode;
   /** Class name for wrapper */
   className?: string;
+
+  // -- Transport callbacks (when provided, skip Inertia router) --
+
+  /** Navigation callback — called instead of router.visit() when provided */
+  onNavigate?: (params: Record<string, unknown>) => void;
+  /** Row action callback — called instead of fetch('/nb-flop/action') when provided */
+  onAction?: (actionName: string, rowId: string | number) => Promise<ActionResult>;
+  /** Bulk action callback — called instead of fetch('/nb-flop/bulk-action') when provided */
+  onBulkAction?: (actionName: string, selection: Selection) => Promise<ActionResult>;
+  /** Refresh callback — called instead of router.reload() when provided */
+  onRefresh?: () => void;
 }
 
 export function Table<T extends Record<string, unknown> = Record<string, unknown>>({
@@ -59,6 +77,10 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
   header,
   footer,
   className,
+  onNavigate,
+  onAction,
+  onBulkAction,
+  onRefresh,
 }: TableProps<T>) {
   const [search, setSearch] = useState(resource.state.search || '');
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
@@ -122,13 +144,17 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
   // Navigation helper
   const navigate = useCallback(
     (query: Record<string, unknown>) => {
-      router.visit(baseUrl, {
-        data: query as Record<string, string>,
-        preserveState: true,
-        preserveScroll: true,
-      });
+      if (onNavigate) {
+        onNavigate(query);
+      } else {
+        router.visit(baseUrl!, {
+          data: query as Record<string, string>,
+          preserveState: true,
+          preserveScroll: true,
+        });
+      }
     },
-    [baseUrl]
+    [baseUrl, onNavigate]
   );
 
   // Handlers
@@ -258,8 +284,6 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
   // Action handlers
   const handleAction = useCallback(
     async (action: TableAction, row: T) => {
-      if (!resource.token) return;
-
       // Check for confirmation
       if (action.confirmation) {
         const confirmed = window.confirm(
@@ -268,7 +292,26 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
         if (!confirmed) return;
       }
 
-      // Execute action via API
+      const rowId = (row as Record<string, unknown>).id as string | number;
+
+      // RPC transport: use callback
+      if (onAction) {
+        const result = await onAction(action.name, rowId);
+        if (result.success) {
+          if (result.redirect) {
+            window.location.href = result.redirect;
+          } else {
+            onRefresh?.();
+          }
+        } else {
+          alert(result.message || 'Action failed');
+        }
+        return;
+      }
+
+      // Inertia transport: use fetch + router
+      if (!resource.token) return;
+
       const response = await fetch('/nb-flop/action', {
         method: 'POST',
         headers: {
@@ -278,7 +321,7 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
         body: JSON.stringify({
           token: resource.token,
           action: action.name,
-          id: row.id,
+          id: rowId,
         }),
       });
 
@@ -294,12 +337,12 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
         alert(result.message || 'Action failed');
       }
     },
-    [resource.token]
+    [resource.token, onAction, onRefresh]
   );
 
   const handleBulkAction = useCallback(
     async (action: TableBulkAction) => {
-      if (!resource.token || selectedCount === 0) return;
+      if (selectedCount === 0) return;
 
       // Check for confirmation
       if (action.confirmation) {
@@ -307,6 +350,24 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
         const confirmed = window.confirm(`${action.confirmation.title}\n\n${message}`);
         if (!confirmed) return;
       }
+
+      const selection = getSelection();
+
+      // RPC transport: use callback
+      if (onBulkAction) {
+        const result = await onBulkAction(action.name, selection);
+        if (result.success) {
+          setSelectedIds(new Set());
+          setSelectionMode('explicit');
+          onRefresh?.();
+        } else {
+          alert(result.message || 'Bulk action failed');
+        }
+        return;
+      }
+
+      // Inertia transport: use fetch + router
+      if (!resource.token) return;
 
       const response = await fetch('/nb-flop/bulk-action', {
         method: 'POST',
@@ -317,7 +378,7 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
         body: JSON.stringify({
           token: resource.token,
           action: action.name,
-          selection: getSelection(),
+          selection,
           filters: resource.state.filters,
         }),
       });
@@ -332,7 +393,7 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
         alert(result.message || 'Bulk action failed');
       }
     },
-    [resource.token, selectedCount, getSelection, resource.state.filters]
+    [resource.token, selectedCount, getSelection, resource.state.filters, onBulkAction, onRefresh]
   );
 
   // Visible columns

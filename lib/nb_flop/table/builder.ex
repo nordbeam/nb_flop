@@ -162,6 +162,19 @@ defmodule NbFlop.Table.Builder do
           flop_params
           |> Map.put(:order_by, [field])
           |> Map.put(:order_directions, [direction])
+
+        fields when is_list(fields) ->
+          order_by = Enum.map(fields, &to_atom_safe/1)
+
+          directions =
+            case Map.get(base_params, "order_directions") do
+              dirs when is_list(dirs) -> Enum.map(dirs, &parse_direction/1)
+              _ -> [:asc]
+            end
+
+          flop_params
+          |> Map.put(:order_by, order_by)
+          |> Map.put(:order_directions, directions)
       end
 
     # Filters
@@ -251,6 +264,15 @@ defmodule NbFlop.Table.Builder do
     end
   end
 
+  defp to_atom_safe(val) when is_atom(val), do: val
+  defp to_atom_safe(val) when is_binary(val), do: String.to_existing_atom(val)
+
+  defp parse_direction("desc"), do: :desc
+  defp parse_direction("asc"), do: :asc
+  defp parse_direction(:desc), do: :desc
+  defp parse_direction(:asc), do: :asc
+  defp parse_direction(_), do: :asc
+
   defp parse_operator(nil), do: :==
   defp parse_operator("=="), do: :==
   defp parse_operator("!="), do: :!=
@@ -262,6 +284,10 @@ defmodule NbFlop.Table.Builder do
   defp parse_operator("<="), do: :<=
   defp parse_operator("in"), do: :in
   defp parse_operator("not_in"), do: :not_in
+  defp parse_operator("like_and"), do: :like_and
+  defp parse_operator("like_or"), do: :like_or
+  defp parse_operator("ilike_and"), do: :ilike_and
+  defp parse_operator("ilike_or"), do: :ilike_or
   defp parse_operator(op) when is_atom(op), do: op
   defp parse_operator(op), do: String.to_existing_atom(op)
 
@@ -672,8 +698,9 @@ defmodule NbFlop.Table.Builder do
     case Application.get_env(:nb_flop, :camelize_keys) do
       nil ->
         # Check nb_inertia config if available
-        if Code.ensure_loaded?(NbInertia.Config) do
-          NbInertia.Config.camelize_props()
+        mod = Module.concat([NbInertia, Config])
+        if Code.ensure_loaded?(mod) and function_exported?(mod, :camelize_props, 0) do
+          mod.camelize_props()
         else
           # Default to true for Inertia.js compatibility
           true

@@ -84,13 +84,14 @@ export { SortableColumnHeader } from './SortableColumnHeader';
 
 // Table Resource component and types
 export { Table } from './Table';
-export type { TableProps } from './Table';
+export type { TableProps, ActionResult } from './Table';
 export type {
   TableResource,
   TableColumn,
   TableAction,
   TableBulkAction,
   TableFilter,
+  TableFlopFilter,
   TableMeta,
   TableState,
   TableEmptyState,
@@ -98,3 +99,13 @@ export type {
   TableViews,
   Selection,
 } from './tableTypes';
+
+// RPC Table (TanStack Query transport)
+export { RpcTable } from './RpcTable';
+export type { RpcTableProps } from './RpcTable';
+export { useRpcTable } from './useRpcTable';
+export type {
+  RpcTableParams,
+  UseRpcTableOptions,
+  UseRpcTableReturn,
+} from './useRpcTable';

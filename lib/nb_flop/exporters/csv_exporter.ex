@@ -74,8 +74,10 @@ defmodule NbFlop.Exporters.CSVExporter do
         data_rows
       end
 
+    csv_mod = Module.concat([CSV])
+
     all_rows
-    |> CSV.encode(separator: delimiter_char(delimiter), line_separator: line_separator)
+    |> csv_mod.encode(separator: delimiter_char(delimiter), line_separator: line_separator)
     |> Enum.join()
   end
 
@@ -131,8 +133,10 @@ defmodule NbFlop.Exporters.CSVExporter do
         end)
       end)
 
+    csv_mod = Module.concat([CSV])
+
     Stream.concat(header_stream, data_stream)
-    |> CSV.encode(separator: delimiter_char(delimiter), line_separator: line_separator)
+    |> csv_mod.encode(separator: delimiter_char(delimiter), line_separator: line_separator)
   end
 
   @doc """

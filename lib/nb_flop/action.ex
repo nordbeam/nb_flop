@@ -14,10 +14,10 @@ defmodule NbFlop.Action do
           variant: variant(),
           url: (map() -> String.t()) | nil,
           handle: (map() -> :ok | {:ok, String.t()} | {:error, String.t()}) | nil,
-          disabled: (map() -> boolean()) | (map(), Plug.Conn.t() -> boolean()) | nil,
-          hidden: (map() -> boolean()) | (map(), Plug.Conn.t() -> boolean()) | nil,
+          disabled: (map() -> boolean()) | (map(), term() -> boolean()) | nil,
+          hidden: (map() -> boolean()) | (map(), term() -> boolean()) | nil,
           confirmation: NbFlop.Confirmation.t() | nil,
-          authorize: (Plug.Conn.t() -> boolean()) | nil,
+          authorize: (term() -> boolean()) | nil,
           success_message: String.t() | nil,
           error_message: String.t() | nil,
           frontend: boolean()

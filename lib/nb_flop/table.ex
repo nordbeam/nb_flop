@@ -101,12 +101,12 @@ defmodule NbFlop.Table do
   Optional callback to determine if a row is selectable.
   Default is true for all rows.
   """
-  @callback selectable?(row :: map(), conn :: Plug.Conn.t()) :: boolean()
+  @callback selectable?(row :: map(), context :: term()) :: boolean()
 
   @doc """
   Optional callback for custom row transformation.
   """
-  @callback transform_row(row :: map(), data :: map(), conn :: Plug.Conn.t()) :: map()
+  @callback transform_row(row :: map(), data :: map(), context :: term()) :: map()
 
   @doc """
   Optional callback to get empty state configuration.

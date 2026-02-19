@@ -107,12 +107,12 @@ defmodule NbFlop.Table.Compiler do
 
       unless Module.defines?(__MODULE__, {:selectable?, 2}) do
         @impl NbFlop.Table
-        def selectable?(_row, _conn), do: true
+        def selectable?(_row, _context), do: true
       end
 
       unless Module.defines?(__MODULE__, {:transform_row, 3}) do
         @impl NbFlop.Table
-        def transform_row(_row, data, _conn), do: data
+        def transform_row(_row, data, _context), do: data
       end
 
       @doc """
@@ -120,8 +120,8 @@ defmodule NbFlop.Table.Compiler do
 
       Returns a map containing all data needed by the frontend Table component.
       """
-      def make(conn, params, opts \\ []) do
-        NbFlop.Table.Builder.build(__MODULE__, conn, params, opts)
+      def make(context, params, opts \\ []) do
+        NbFlop.Table.Builder.build(__MODULE__, context, params, opts)
       end
     end
   end

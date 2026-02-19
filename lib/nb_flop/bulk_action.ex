@@ -12,7 +12,7 @@ defmodule NbFlop.BulkAction do
           variant: NbFlop.Action.variant(),
           handle: ([map()] -> :ok | {:ok, String.t()} | {:error, String.t()}) | nil,
           confirmation: NbFlop.Confirmation.t() | nil,
-          authorize: (Plug.Conn.t() -> boolean()) | nil,
+          authorize: (term() -> boolean()) | nil,
           chunk_size: pos_integer(),
           before: ([map()] -> :ok | {:error, String.t()}) | nil,
           after: ([map()] -> :ok) | nil,
