@@ -41,8 +41,8 @@ defmodule NbFlop.MixProject do
       # Phoenix for token generation (optional)
       {:phoenix, "~> 1.7", optional: true},
 
-      # CSV export (optional)
-      {:csv, "~> 3.2", optional: true},
+      # CSV export
+      {:csv, "~> 3.2"},
 
       # Documentation
       {:ex_doc, "~> 0.31", only: :dev, runtime: false}
