@@ -153,4 +153,36 @@ defmodule NbFlop.Table.DSL.Columns do
       @nb_flop_columns {:action, :_actions, unquote(Macro.escape(opts, unquote: true))}
     end
   end
+
+  @doc """
+  Declares an extra field added by `transform_row/3` for TypeScript type generation.
+
+  Use this to document fields that `transform_row` adds to the row data so that
+  `nb_ts` can generate accurate TypeScript types for the table rows.
+
+  ## Supported types
+
+    * `:string` - String value
+    * `:number` - Numeric value
+    * `:boolean` - Boolean value
+    * `:map` - Object/map (use `fields:` option to declare shape)
+
+  ## Options
+
+    * `:nullable` - Whether the field can be null (default false)
+    * `:fields` - For `:map` type, a keyword list of `{key, type}` pairs
+
+  ## Examples
+
+      columns do
+        text_column :name, sortable: true
+        ts_field :stats, :map, fields: [total: :number, success: :number]
+        ts_field :formatted_date, :string
+      end
+  """
+  defmacro ts_field(key, type, opts \\ []) do
+    quote do
+      @nb_flop_ts_extra_fields {unquote(key), unquote(type), unquote(opts)}
+    end
+  end
 end

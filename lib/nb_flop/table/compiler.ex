@@ -8,6 +8,7 @@ defmodule NbFlop.Table.Compiler do
     repo = Module.get_attribute(env.module, :nb_flop_repo)
     config = Module.get_attribute(env.module, :nb_flop_config)
     columns = Module.get_attribute(env.module, :nb_flop_columns) |> Enum.reverse()
+    ts_extra_fields = Module.get_attribute(env.module, :nb_flop_ts_extra_fields) |> Enum.reverse()
     filters = Module.get_attribute(env.module, :nb_flop_filters) |> Enum.reverse()
     actions = Module.get_attribute(env.module, :nb_flop_actions) |> Enum.reverse()
     bulk_actions = Module.get_attribute(env.module, :nb_flop_bulk_actions) |> Enum.reverse()
@@ -113,6 +114,47 @@ defmodule NbFlop.Table.Compiler do
       unless Module.defines?(__MODULE__, {:transform_row, 3}) do
         @impl NbFlop.Table
         def transform_row(_row, data, _context), do: data
+      end
+
+      @doc """
+      Returns type metadata for TypeScript type generation via nb_ts.
+
+      The returned map contains column types and any extra fields declared
+      via `ts_field` for `transform_row` additions.
+      """
+      def __nb_flop_type_metadata__ do
+        %{
+          columns:
+            unquote(
+              columns
+              |> Enum.reject(fn {type, _key, _opts} -> type == :action end)
+              |> Enum.map(fn {type, key, opts} ->
+                nullable = Keyword.get(opts, :nullable, false)
+                ts_type = Keyword.get(opts, :ts_type, nil)
+
+                Macro.escape(%{
+                  key: key,
+                  type: type,
+                  nullable: nullable,
+                  ts_type: ts_type
+                })
+              end)
+            ),
+          extra_fields:
+            unquote(
+              Enum.map(ts_extra_fields, fn {key, type, opts} ->
+                nullable = Keyword.get(opts, :nullable, false)
+                fields = Keyword.get(opts, :fields, nil)
+
+                Macro.escape(%{
+                  key: key,
+                  type: type,
+                  nullable: nullable,
+                  fields: fields
+                })
+              end)
+            )
+        }
       end
 
       @doc """

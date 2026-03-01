@@ -147,6 +147,7 @@ defmodule NbFlop.Table do
       Module.register_attribute(__MODULE__, :nb_flop_empty_state, accumulate: false)
       Module.register_attribute(__MODULE__, :nb_flop_exports, accumulate: true)
       Module.register_attribute(__MODULE__, :nb_flop_views_config, accumulate: false)
+      Module.register_attribute(__MODULE__, :nb_flop_ts_extra_fields, accumulate: true)
 
       @before_compile NbFlop.Table.Compiler
 
