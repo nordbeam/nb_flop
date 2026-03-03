@@ -38,6 +38,52 @@ defmodule NbFlop.Table.Compiler do
           NbFlop.Table.Config.default(unquote(Macro.to_string(env.module)))
         end
 
+    # Validate searchable fields match Flop compound fields (if Flop.Schema is derived)
+    searchable =
+      case config do
+        %NbFlop.Table.Config{searchable: fields} when is_list(fields) and fields != [] ->
+          fields
+
+        _ ->
+          []
+      end
+
+    if searchable != [] do
+      # Check if resource has Flop.Schema derived with a :search compound field
+      if Code.ensure_loaded?(resource) do
+        search_info =
+          try do
+            Flop.Schema.field_info(struct(resource), :search)
+          rescue
+            _ -> nil
+          end
+
+        case search_info do
+          %{extra: %{type: :compound, fields: compound_fields}} ->
+            missing = searchable -- compound_fields
+
+            if missing != [] do
+              IO.warn(
+                "NbFlop table #{inspect(env.module)}: searchable fields #{inspect(missing)} " <>
+                  "are not in the Flop.Schema compound_fields :search definition on #{inspect(resource)}. " <>
+                  "Search will not query these fields. Either add them to @derive {Flop.Schema, " <>
+                  "compound_fields: [search: #{inspect(compound_fields ++ missing)}]} " <>
+                  "or remove them from the searchable config.",
+                Macro.Env.stacktrace(env)
+              )
+            end
+
+          _ ->
+            IO.warn(
+              "NbFlop table #{inspect(env.module)}: searchable is configured but #{inspect(resource)} " <>
+                "does not define a :search compound field in its Flop.Schema derivation. " <>
+                "Add `compound_fields: [search: #{inspect(searchable)}]` to the @derive.",
+              Macro.Env.stacktrace(env)
+            )
+        end
+      end
+    end
+
     quote do
       @impl NbFlop.Table
       def resource, do: unquote(resource)

@@ -5,7 +5,7 @@ defmodule NbFlop.Export do
   Exports allow users to download table data in various formats.
   """
 
-  @type format :: :csv | :excel | :pdf
+  @type format :: :csv
 
   @type t :: %__MODULE__{
           name: atom(),
@@ -35,7 +35,7 @@ defmodule NbFlop.Export do
   ## Options
 
     * `:label` - Export button label
-    * `:format` - Export format (:csv, :excel, :pdf)
+    * `:format` - Export format (currently only `:csv` is supported)
     * `:columns` - List of columns to export (default: all)
     * `:format_column` - Map of column to formatter function
     * `:filename` - Function to generate filename
@@ -59,11 +59,8 @@ defmodule NbFlop.Export do
   end
 
   defp infer_format(:csv), do: :csv
-  defp infer_format(:excel), do: :excel
-  defp infer_format(:pdf), do: :pdf
   defp infer_format(_), do: :csv
 
   defp default_label(:csv), do: "Export CSV"
-  defp default_label(:excel), do: "Export Excel"
-  defp default_label(:pdf), do: "Export PDF"
+  defp default_label(_), do: "Export"
 end

@@ -163,7 +163,7 @@ export interface TableBulkAction {
 export interface TableExport {
   name: string;
   label: string | null;
-  format: 'csv' | 'excel' | 'pdf';
+  format: 'csv';
 }
 
 // Empty state configuration

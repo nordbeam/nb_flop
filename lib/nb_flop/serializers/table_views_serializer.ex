@@ -4,9 +4,11 @@ defmodule NbFlop.Serializers.TableViewsSerializer do
   """
   use NbSerializer.Serializer
 
+  alias NbFlop.Serializers.TableViewItemSerializer
+
   schema do
     field(:enabled, :boolean)
-    field(:list, list: :map)
-    field(:current, :map, nullable: true)
+    has_many(:list, serializer: TableViewItemSerializer)
+    has_one(:current, serializer: TableViewItemSerializer, nullable: true)
   end
 end

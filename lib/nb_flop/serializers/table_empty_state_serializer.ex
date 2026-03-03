@@ -4,10 +4,12 @@ defmodule NbFlop.Serializers.TableEmptyStateSerializer do
   """
   use NbSerializer.Serializer
 
+  alias NbFlop.Serializers.TableEmptyStateActionSerializer
+
   schema do
     field(:title, :string)
     field(:message, :string, nullable: true)
     field(:icon, :string, nullable: true)
-    field(:action, :map, nullable: true)
+    has_one(:action, serializer: TableEmptyStateActionSerializer, nullable: true)
   end
 end

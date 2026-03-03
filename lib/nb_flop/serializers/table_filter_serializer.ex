@@ -19,7 +19,7 @@ defmodule NbFlop.Serializers.TableFilterSerializer do
     # UI hints
     field(:icon, :string, nullable: true)
     field(:placeholder, :string, nullable: true)
-    field(:colors, :map, nullable: true)
+    field(:colors, :any, nullable: true)
 
     has_many(:options, TableFilterOptionSerializer)
   end

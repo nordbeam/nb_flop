@@ -123,12 +123,29 @@ defmodule NbFlop.Table do
   """
   @callback views_config() :: NbFlop.ViewsConfig.t() | nil
 
+  @doc """
+  Optional callback to scope queries for the current request.
+
+  When defined, this scope is applied both when building the table resource
+  AND when executing actions/bulk actions/exports. This ensures tenant
+  isolation even for action endpoints.
+
+  ## Example
+
+      def scope(conn) do
+        account = conn.assigns.current_scope.account
+        from(c in MyApp.Contact, where: c.account_id == ^account.id)
+      end
+  """
+  @callback scope(context :: term()) :: Ecto.Queryable.t()
+
   @optional_callbacks [
     selectable?: 2,
     transform_row: 3,
     empty_state: 0,
     exports: 0,
-    views_config: 0
+    views_config: 0,
+    scope: 1
   ]
 
   defmacro __using__(_opts) do

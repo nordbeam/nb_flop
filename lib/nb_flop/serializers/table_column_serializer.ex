@@ -20,7 +20,7 @@ defmodule NbFlop.Serializers.TableColumnSerializer do
     field(:cell_class, :string, nullable: true)
 
     # Type-specific options (badge, numeric, date, image)
-    field(:colors, :map, nullable: true)
+    field(:colors, :any, nullable: true)
     field(:prefix, :string, nullable: true)
     field(:suffix, :string, nullable: true)
     field(:decimals, :number, nullable: true)

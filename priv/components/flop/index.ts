@@ -82,6 +82,10 @@ export { DataTable, DataTableContext, useDataTableContext } from './DataTable';
 export type { DataTableProps, DataTableContextValue, ColumnDef } from './DataTable';
 export { SortableColumnHeader } from './SortableColumnHeader';
 
+// Confirmation dialog
+export { ConfirmDialog, useConfirmDialog } from './ConfirmDialog';
+export type { ConfirmDialogProps } from './ConfirmDialog';
+
 // Table Resource component and types
 export { Table } from './Table';
 export type { TableProps, ActionResult } from './Table';

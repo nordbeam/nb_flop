@@ -39,7 +39,7 @@ defmodule NbFlop.ExportController do
     with {:ok, %{table: table_module}} <- NbFlop.Token.verify(endpoint, token),
          {:ok, export} <- find_export(table_module, export_name),
          :ok <- authorize_export(export, conn),
-         {:ok, rows} <- load_all_rows(table_module, params) do
+         {:ok, rows} <- load_all_rows(table_module, params, conn) do
       send_export_response(conn, table_module, rows, export, params)
     else
       {:error, :invalid_table} ->
@@ -87,9 +87,17 @@ defmodule NbFlop.ExportController do
     if authorize.(conn), do: :ok, else: {:error, :unauthorized}
   end
 
-  defp load_all_rows(table_module, params) do
+  defp load_all_rows(table_module, params, conn) do
     repo = table_module.repo()
     resource = table_module.resource()
+
+    base =
+      if function_exported?(table_module, :scope, 1) do
+        table_module.scope(conn)
+      else
+        resource
+      end
+
     filters = parse_filters(params)
 
     # Build Flop query without pagination to get all matching rows
@@ -97,72 +105,58 @@ defmodule NbFlop.ExportController do
 
     case Flop.validate(flop_params, for: resource) do
       {:ok, flop} ->
-        query = Flop.query(resource, flop)
+        query = Flop.query(base, flop)
         {:ok, repo.all(query)}
 
       {:error, _} ->
-        {:ok, repo.all(resource)}
+        {:ok, repo.all(base)}
     end
   end
 
   defp parse_filters(%{"filters" => filters_json}) when is_binary(filters_json) do
-    case Jason.decode(filters_json) do
-      {:ok, filters} when is_list(filters) ->
-        Enum.map(filters, fn f ->
-          %{
-            field: String.to_existing_atom(f["field"]),
-            op: parse_op(f["op"]),
-            value: f["value"]
-          }
-        end)
-
-      _ ->
-        []
-    end
-  rescue
-    _ -> []
+    NbFlop.Params.parse_filters_json(filters_json)
   end
 
   defp parse_filters(_), do: []
-
-  defp parse_op(op) when is_atom(op), do: op
-  defp parse_op("=="), do: :==
-  defp parse_op("!="), do: :!=
-  defp parse_op("ilike"), do: :ilike
-  defp parse_op(">"), do: :>
-  defp parse_op(">="), do: :>=
-  defp parse_op("<"), do: :<
-  defp parse_op("<="), do: :<=
-  defp parse_op("in"), do: :in
-  defp parse_op(op), do: String.to_existing_atom(op)
 
   defp send_export_response(conn, table_module, rows, export, params) do
     case export.format do
       :csv ->
         send_csv_response(conn, table_module, rows, export, params)
 
-      :excel ->
-        # Excel export not implemented yet
-        send_json(conn, 501, %{error: "Excel export not implemented"})
-
-      :pdf ->
-        # PDF export not implemented yet
-        send_json(conn, 501, %{error: "PDF export not implemented"})
-
-      _ ->
-        send_json(conn, 400, %{error: "Unknown export format"})
+      format ->
+        send_json(conn, 400, %{error: "Unsupported export format: #{format}"})
     end
   end
 
   defp send_csv_response(conn, table_module, rows, export, _params) do
     filename = CSVExporter.generate_filename(table_module, export)
-    csv_data = CSVExporter.generate(table_module, rows, export)
 
-    conn
-    |> put_resp_content_type("text/csv")
-    |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
-    |> send_resp(200, csv_data)
-    |> halt()
+    # Stream large exports to avoid OOM, send small ones directly
+    if length(rows) > 1000 do
+      conn =
+        conn
+        |> put_resp_content_type("text/csv")
+        |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+        |> Plug.Conn.send_chunked(200)
+
+      csv_stream = CSVExporter.stream(table_module, rows, export)
+
+      Enum.reduce_while(csv_stream, conn, fn chunk, conn ->
+        case Plug.Conn.chunk(conn, chunk) do
+          {:ok, conn} -> {:cont, conn}
+          {:error, :closed} -> {:halt, conn}
+        end
+      end)
+    else
+      csv_data = CSVExporter.generate(table_module, rows, export)
+
+      conn
+      |> put_resp_content_type("text/csv")
+      |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+      |> send_resp(200, csv_data)
+      |> halt()
+    end
   end
 
   defp send_json(conn, status, data) do

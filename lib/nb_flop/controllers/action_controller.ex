@@ -28,7 +28,7 @@ defmodule NbFlop.ActionController do
     with {:ok, %{table: table_module}} <- NbFlop.Token.verify(endpoint, token),
          {:ok, action} <- find_action(table_module, action_name),
          :ok <- authorize_action(action, conn),
-         {:ok, row} <- load_row(table_module, id),
+         {:ok, row} <- load_row(table_module, id, conn),
          :ok <- check_not_disabled(action, row, conn),
          result <- execute_action(action, row) do
       send_json_response(conn, result, action)
@@ -81,7 +81,7 @@ defmodule NbFlop.ActionController do
     with {:ok, %{table: table_module}} <- NbFlop.Token.verify(endpoint, token),
          {:ok, action} <- find_bulk_action(table_module, action_name),
          :ok <- authorize_bulk_action(action, conn),
-         {:ok, rows} <- load_selected_rows(table_module, selection, params),
+         {:ok, rows} <- load_selected_rows(table_module, selection, params, conn),
          :ok <- run_before_callback(action, rows),
          result <- execute_bulk_action(action, rows),
          :ok <- run_after_callback(action, rows) do
@@ -158,11 +158,19 @@ defmodule NbFlop.ActionController do
     if authorize.(conn), do: :ok, else: {:error, :unauthorized}
   end
 
-  defp load_row(table_module, id) do
+  defp load_row(table_module, id, conn) do
     repo = table_module.repo()
-    resource = table_module.resource()
 
-    case repo.get(resource, id) do
+    row =
+      if function_exported?(table_module, :scope, 1) do
+        import Ecto.Query
+        query = table_module.scope(conn)
+        repo.one(from(r in query, where: r.id == ^id))
+      else
+        repo.get(table_module.resource(), id)
+      end
+
+    case row do
       nil -> {:error, :not_found}
       row -> {:ok, row}
     end
@@ -213,36 +221,37 @@ defmodule NbFlop.ActionController do
     send_json(conn, 422, %{success: false, message: message})
   end
 
-  defp load_selected_rows(table_module, %{"mode" => "explicit", "ids" => ids}, _params) do
+  defp load_selected_rows(table_module, %{"mode" => "explicit", "ids" => ids}, _params, conn) do
     repo = table_module.repo()
-    resource = table_module.resource()
+    base = scoped_query(table_module, conn)
 
     import Ecto.Query
-    rows = repo.all(from(r in resource, where: r.id in ^ids))
+    rows = repo.all(from(r in base, where: r.id in ^ids))
     {:ok, rows}
   end
 
-  defp load_selected_rows(table_module, %{"mode" => "all"}, params) do
+  defp load_selected_rows(table_module, %{"mode" => "all"}, params, conn) do
     repo = table_module.repo()
     resource = table_module.resource()
+    base = scoped_query(table_module, conn)
     filters = Map.get(params, "filters", [])
 
-    # Build Flop query without pagination
     flop_params = %{filters: parse_filters(filters)}
 
     case Flop.validate(flop_params, for: resource) do
       {:ok, flop} ->
-        query = Flop.query(resource, flop)
+        query = Flop.query(base, flop)
         {:ok, repo.all(query)}
 
       {:error, _} ->
-        {:ok, repo.all(resource)}
+        {:ok, repo.all(base)}
     end
   end
 
-  defp load_selected_rows(table_module, %{"mode" => "all_except", "ids" => excluded_ids}, params) do
+  defp load_selected_rows(table_module, %{"mode" => "all_except", "ids" => excluded_ids}, params, conn) do
     repo = table_module.repo()
     resource = table_module.resource()
+    base = scoped_query(table_module, conn)
     filters = Map.get(params, "filters", [])
 
     import Ecto.Query
@@ -251,42 +260,27 @@ defmodule NbFlop.ActionController do
 
     query =
       case Flop.validate(flop_params, for: resource) do
-        {:ok, flop} -> Flop.query(resource, flop)
-        {:error, _} -> resource
+        {:ok, flop} -> Flop.query(base, flop)
+        {:error, _} -> base
       end
 
     rows = repo.all(from(r in query, where: r.id not in ^excluded_ids))
     {:ok, rows}
   end
 
-  defp load_selected_rows(_table_module, _selection, _params) do
+  defp load_selected_rows(_table_module, _selection, _params, _conn) do
     {:error, "Invalid selection mode"}
   end
 
-  defp parse_filters(filters) when is_list(filters) do
-    Enum.map(filters, fn f ->
-      %{
-        field: String.to_existing_atom(f["field"]),
-        op: parse_op(f["op"]),
-        value: f["value"]
-      }
-    end)
-  rescue
-    _ -> []
+  defp scoped_query(table_module, conn) do
+    if function_exported?(table_module, :scope, 1) do
+      table_module.scope(conn)
+    else
+      table_module.resource()
+    end
   end
 
-  defp parse_filters(_), do: []
-
-  defp parse_op(op) when is_atom(op), do: op
-  defp parse_op("=="), do: :==
-  defp parse_op("!="), do: :!=
-  defp parse_op("ilike"), do: :ilike
-  defp parse_op(">"), do: :>
-  defp parse_op(">="), do: :>=
-  defp parse_op("<"), do: :<
-  defp parse_op("<="), do: :<=
-  defp parse_op("in"), do: :in
-  defp parse_op(op), do: String.to_existing_atom(op)
+  defp parse_filters(filters), do: NbFlop.Params.parse_filters(filters)
 
   defp run_before_callback(%NbFlop.BulkAction{before: nil}, _rows), do: :ok
 

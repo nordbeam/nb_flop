@@ -160,6 +160,29 @@ defmodule NbFlop.Table.DSL do
   end
 
   @doc """
+  Declares extra fields added by `transform_row/3` for TypeScript generation.
+
+  Fields declared here don't affect the table display — they only inform the
+  type system so that nb_ts generates accurate row types.
+
+  This is the preferred location for `ts_field`-style declarations (rather than
+  inside `columns do...end`), since these fields have nothing to do with columns.
+
+  ## Example
+
+      row_fields do
+        row_field :stats, :map, fields: [total: :number, success: :number]
+        row_field :contact_id, :string, nullable: true
+      end
+  """
+  defmacro row_fields(do: block) do
+    quote do
+      import NbFlop.Table.DSL.RowFields
+      unquote(block)
+    end
+  end
+
+  @doc """
   Defines views (saved table states) configuration.
 
   ## Example

@@ -22,9 +22,17 @@ defmodule NbFlop.Table.Builder do
     # Parse params with table name prefix
     flop_params = parse_params(params, table_name, config)
 
-    # Execute Flop query - use custom query if provided, otherwise use resource()
+    # Execute Flop query - precedence: opts[:query] > scope/1 > resource()
     resource = table_module.resource()
-    query = Keyword.get(opts, :query, resource)
+
+    base_query =
+      if function_exported?(table_module, :scope, 1) do
+        table_module.scope(conn)
+      else
+        resource
+      end
+
+    query = Keyword.get(opts, :query, base_query)
     repo = table_module.repo()
 
     case Flop.validate_and_run(query, flop_params, repo: repo, for: resource) do
@@ -273,23 +281,7 @@ defmodule NbFlop.Table.Builder do
   defp parse_direction(:asc), do: :asc
   defp parse_direction(_), do: :asc
 
-  defp parse_operator(nil), do: :==
-  defp parse_operator("=="), do: :==
-  defp parse_operator("!="), do: :!=
-  defp parse_operator("ilike"), do: :ilike
-  defp parse_operator("contains"), do: :ilike
-  defp parse_operator(">"), do: :>
-  defp parse_operator(">="), do: :>=
-  defp parse_operator("<"), do: :<
-  defp parse_operator("<="), do: :<=
-  defp parse_operator("in"), do: :in
-  defp parse_operator("not_in"), do: :not_in
-  defp parse_operator("like_and"), do: :like_and
-  defp parse_operator("like_or"), do: :like_or
-  defp parse_operator("ilike_and"), do: :ilike_and
-  defp parse_operator("ilike_or"), do: :ilike_or
-  defp parse_operator(op) when is_atom(op), do: op
-  defp parse_operator(op), do: String.to_existing_atom(op)
+  defp parse_operator(op), do: NbFlop.Params.parse_op(op)
 
   # Transform row values through column compute and map_as functions
   defp transform_row_values(row, columns) do
@@ -600,18 +592,46 @@ defmodule NbFlop.Table.Builder do
     if state.action, do: Map.put(base, :action, state.action), else: base
   end
 
-  # Load saved views (placeholder - actual implementation in views module)
-  defp load_views(table_module, _conn) do
+  defp load_views(table_module, conn) do
     views_config = table_module.views_config()
 
     if views_config && views_config.enabled do
+      user_id = resolve_user_id(views_config, conn)
+
+      views =
+        try do
+          config = table_module.config()
+          NbFlop.Views.list_views(config.name, user_id)
+        rescue
+          # Views repo not configured — return empty
+          _ -> []
+        end
+
+      default_view = Enum.find(views, & &1.is_default)
+
       %{
         enabled: true,
-        list: [],
-        current: nil
+        list: Enum.map(views, &NbFlop.Views.SavedView.to_config/1),
+        current: if(default_view, do: NbFlop.Views.SavedView.to_config(default_view))
       }
     else
       %{enabled: false, list: [], current: nil}
+    end
+  end
+
+  defp resolve_user_id(views_config, conn) do
+    cond do
+      views_config.scope_user and is_function(views_config.user_resolver) ->
+        views_config.user_resolver.(conn)
+
+      views_config.scope_user ->
+        case conn do
+          %{assigns: %{current_user: %{id: id}}} -> id
+          _ -> nil
+        end
+
+      true ->
+        nil
     end
   end
 

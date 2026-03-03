@@ -395,32 +395,7 @@ defmodule NbFlop.Rpc do
     {:error, :validation}
   end
 
-  defp parse_filters(filters) when is_list(filters) do
-    Enum.map(filters, fn f ->
-      %{
-        field: String.to_existing_atom(to_string(f[:field] || f["field"])),
-        op: parse_op(f[:op] || f["op"]),
-        value: f[:value] || f["value"]
-      }
-    end)
-  rescue
-    _ -> []
-  end
-
-  defp parse_filters(_), do: []
-
-  defp parse_op(nil), do: :==
-  defp parse_op(op) when is_atom(op), do: op
-  defp parse_op("=="), do: :==
-  defp parse_op("!="), do: :!=
-  defp parse_op("ilike"), do: :ilike
-  defp parse_op(">"), do: :>
-  defp parse_op(">="), do: :>=
-  defp parse_op("<"), do: :<
-  defp parse_op("<="), do: :<=
-  defp parse_op("in"), do: :in
-  defp parse_op("not_in"), do: :not_in
-  defp parse_op(op) when is_binary(op), do: String.to_existing_atom(op)
+  defp parse_filters(filters), do: NbFlop.Params.parse_filters(filters)
 
   defp run_callback(nil, _rows), do: :ok
   defp run_callback(callback, rows), do: callback.(rows)
