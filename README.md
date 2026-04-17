@@ -14,7 +14,13 @@ Flop integration for the nb ecosystem, providing pagination, sorting, and filter
 
 ## Installation
 
-Add `nb_flop` to your dependencies:
+Install with Igniter:
+
+```bash
+mix igniter.install nb_flop
+```
+
+Or, after adding `nb_flop` to your dependencies manually:
 
 ```elixir
 def deps do
@@ -27,19 +33,17 @@ end
 ### Basic Installation
 
 ```bash
-mix nb_flop.install
+mix igniter.install nb_flop
 ```
 
 ### Table DSL Installation (Recommended)
 
 ```bash
-mix nb_flop.install --table
+mix igniter.install nb_flop --table
 ```
 
 ### Options
 
-- `--ui base` - Base UI (unstyled primitives from MUI team)
-- `--ui radix` - Radix UI (accessibility-first primitives)
 - `--table` - Install Table DSL components and routes
 - `--with-views` - Include saved views support
 - `--with-exports` - Include CSV export support

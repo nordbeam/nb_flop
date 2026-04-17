@@ -1,4 +1,4 @@
-if Code.ensure_loaded?(Igniter.Mix.Task) do
+if Code.ensure_loaded?(Igniter) do
   defmodule Mix.Tasks.NbFlop.Install do
     @moduledoc """
     Installs nb_flop - Flop integration for the nb ecosystem.
@@ -51,24 +51,30 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
 
     use Igniter.Mix.Task
 
+    @task_group :nb
+    @schema [
+      table: :boolean,
+      with_views: :boolean,
+      with_exports: :boolean,
+      yes: :boolean
+    ]
+    @defaults [
+      table: false,
+      with_views: false,
+      with_exports: false,
+      yes: false
+    ]
+
     @impl Igniter.Mix.Task
-    def info(_argv, _parent) do
+    def info(argv, _parent) do
+      options = installer_options(argv)
+
       %Igniter.Mix.Task.Info{
-        group: :nb,
-        schema: [
-          table: :boolean,
-          with_views: :boolean,
-          with_exports: :boolean,
-          yes: :boolean
-        ],
-        defaults: [
-          table: false,
-          with_views: false,
-          with_exports: false,
-          yes: false
-        ],
+        group: @task_group,
+        schema: @schema,
+        defaults: @defaults,
         positional: [],
-        composes: ["deps.get"],
+        adds_deps: optional_dependency_specs(options),
         example: "mix nb_flop.install --table"
       }
     end
@@ -77,11 +83,10 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
     def igniter(igniter) do
       with_table = igniter.args.options[:table]
       with_views = igniter.args.options[:with_views]
-      with_exports = igniter.args.options[:with_exports]
 
       igniter
+      |> ensure_optional_dependencies_added()
       |> print_welcome(with_table)
-      |> add_dependencies(with_exports)
       |> generate_serializers()
       |> copy_components()
       |> maybe_add_routes(with_table)
@@ -89,6 +94,25 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
       |> maybe_setup_views(with_views)
       |> install_npm_packages()
       |> print_success(with_table)
+    end
+
+    @doc false
+    def installer_options(argv) do
+      group = Igniter.Util.Info.group(%Igniter.Mix.Task.Info{group: @task_group}, task_name())
+
+      {options, _argv, _invalid} =
+        argv
+        |> Igniter.Util.Info.args_for_group(group)
+        |> OptionParser.parse(switches: @schema)
+
+      Keyword.merge(@defaults, options)
+    end
+
+    @doc false
+    def optional_dependency_specs(options, installed_deps \\ installed_project_deps()) do
+      []
+      |> maybe_add_optional_dep(true, installed_deps, {:flop, "~> 0.26"})
+      |> maybe_add_optional_dep(options[:with_exports], installed_deps, {:csv, "~> 3.2"})
     end
 
     # Print welcome message
@@ -110,15 +134,15 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
       Igniter.add_notice(igniter, message)
     end
 
-    # Add flop dependency
-    defp add_dependencies(igniter, with_exports) do
-      igniter = Igniter.Project.Deps.add_dep(igniter, {:flop, "~> 0.26"})
+    defp ensure_optional_dependencies_added(igniter) do
+      missing_specs =
+        igniter.args.options
+        |> optional_dependency_specs()
+        |> Enum.reject(fn spec -> dep_present?(igniter, dep_name(spec)) end)
 
-      if with_exports do
-        Igniter.Project.Deps.add_dep(igniter, {:csv, "~> 3.2"})
-      else
-        igniter
-      end
+      Enum.reduce(missing_specs, igniter, fn spec, igniter ->
+        Igniter.Project.Deps.add_dep(igniter, spec)
+      end)
     end
 
     # Generate serializers to user's codebase
@@ -775,6 +799,77 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
       """
 
       Igniter.add_notice(igniter, success_message)
+    end
+
+    defp maybe_add_optional_dep(specs, true, installed_deps, spec) do
+      if dep_installed?(installed_deps, dep_name(spec)) do
+        specs
+      else
+        specs ++ [spec]
+      end
+    end
+
+    defp maybe_add_optional_dep(specs, _, _installed_deps, _spec), do: specs
+
+    defp installed_project_deps do
+      Mix.Project.config()
+      |> Keyword.get(:deps, [])
+      |> Enum.map(&dep_name/1)
+    end
+
+    defp dep_present?(igniter, dep) do
+      case Igniter.Project.Deps.get_dep(igniter, dep) do
+        {:ok, _} -> true
+        _ -> false
+      end
+    end
+
+    defp dep_installed?(installed_deps, dep), do: dep in installed_deps
+
+    defp dep_name({dep, _, _}) when is_atom(dep), do: dep
+    defp dep_name({dep, _}) when is_atom(dep), do: dep
+
+    defp task_name do
+      Mix.Task.task_name(__MODULE__)
+    end
+  end
+else
+  defmodule Mix.Tasks.NbFlop.Install do
+    @shortdoc "Install `igniter` in order to install NbFlop."
+
+    @moduledoc """
+    The task 'nb_flop.install' requires igniter. Please install igniter and try again.
+
+    Add to your mix.exs for direct task usage:
+
+        {:igniter, "~> 0.7", only: [:dev, :test]}
+
+    Or install Igniter first and use the preferred installer flow:
+
+        mix igniter.install nb_flop
+    """
+
+    use Mix.Task
+
+    def run(_argv) do
+      Mix.shell().error("""
+      The task 'nb_flop.install' requires igniter. Please install igniter and try again.
+
+      Add to your mix.exs for direct task usage:
+
+          {:igniter, "~> 0.7", only: [:dev, :test]}
+
+      Or install Igniter first and use the preferred installer flow:
+
+          mix igniter.install nb_flop
+
+      Then run:
+
+          mix deps.get
+          mix nb_flop.install
+      """)
+
+      exit({:shutdown, 1})
     end
   end
 end
