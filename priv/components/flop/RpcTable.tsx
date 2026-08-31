@@ -41,7 +41,7 @@ export interface RpcTableProps<T = Record<string, unknown>>
   renderError?: (error: Error) => React.ReactNode;
 }
 
-export function RpcTable<T extends Record<string, unknown> = Record<string, unknown>>({
+export function RpcTable<T extends object = Record<string, unknown>>({
   queryOptions,
   actionMutation,
   bulkActionMutation,

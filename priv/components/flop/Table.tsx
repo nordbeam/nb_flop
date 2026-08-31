@@ -19,7 +19,7 @@ import type {
   Selection,
 } from './tableTypes';
 import { Pagination } from './Pagination';
-import { SearchInput } from '@/components/SearchInput';
+import { SearchInput } from './SearchInput';
 import { FilterBar } from './FilterBar';
 import { ConfirmDialog, useConfirmDialog } from './ConfirmDialog';
 
@@ -66,7 +66,7 @@ export interface TableProps<T = Record<string, unknown>> {
   onRefresh?: () => void;
 }
 
-export function Table<T extends Record<string, unknown> = Record<string, unknown>>({
+export function Table<T extends object = Record<string, unknown>>({
   resource,
   baseUrl,
   renderRow,
@@ -365,7 +365,7 @@ export function Table<T extends Record<string, unknown> = Record<string, unknown
 
   // Check if row is selected
   const isRowSelected = (row: T) => {
-    const id = row.id as string | number;
+    const id = (row as Record<string, unknown>).id as string | number;
     if (selectionMode === 'all') {
       return !selectedIds.has(id);
     }

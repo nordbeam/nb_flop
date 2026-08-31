@@ -1,0 +1,4 @@
+interface:
+  display_name: "nb Flop"
+  short_description: "Build typed Phoenix data tables and filters"
+  default_prompt: "Use $nb-flop to configure or troubleshoot a version-aware Flop data table."

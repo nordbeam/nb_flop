@@ -7,12 +7,14 @@ if Code.ensure_loaded?(Igniter) do
     - Adds the `:flop` dependency
     - Generates serializers to your `lib/your_app_web/serializers/` directory
     - Copies React components to `assets/js/components/flop/`
-    - Installs required npm packages (@tanstack/react-table)
+    - Installs required frontend packages (@tanstack/react-table, Lucide, shadcn)
 
     ## Prerequisites
-    Components use shadcn/ui. Install required components first:
-
-        npx shadcn@latest add button badge popover dropdown-menu command input
+    A Phoenix application with frontend assets is required. The installer
+    initializes shadcn/ui when needed and adds every required component.
+    For Vite+ projects, a globally installed `vp` is preferred. When it is
+    unavailable, the installer runs the pinned Vite+ CLI through npm with
+    `npm exec --yes --package=vite-plus@0.3.0 -- vp ...`.
 
     ## Usage
 
@@ -92,7 +94,7 @@ if Code.ensure_loaded?(Igniter) do
       |> maybe_add_routes(with_table)
       |> maybe_generate_sample_table(with_table)
       |> maybe_setup_views(with_views)
-      |> install_npm_packages()
+      |> install_frontend_packages()
       |> print_success(with_table)
     end
 
@@ -111,7 +113,7 @@ if Code.ensure_loaded?(Igniter) do
     @doc false
     def optional_dependency_specs(options, installed_deps \\ installed_project_deps()) do
       []
-      |> maybe_add_optional_dep(true, installed_deps, {:flop, "~> 0.26"})
+      |> maybe_add_optional_dep(true, installed_deps, {:flop, "~> 0.28"})
       |> maybe_add_optional_dep(options[:with_exports], installed_deps, {:csv, "~> 3.2"})
     end
 
@@ -435,6 +437,8 @@ if Code.ensure_loaded?(Igniter) do
         "FilterValueInput.tsx",
         "FilterValueSelect.tsx",
         "FilterModeToggle.tsx",
+        "ConfirmDialog.tsx",
+        "SearchInput.tsx",
         "Table.tsx",
         "index.ts"
       ]
@@ -452,28 +456,99 @@ if Code.ensure_loaded?(Igniter) do
       end)
     end
 
-    # Install npm packages
-    defp install_npm_packages(igniter) do
-      pkg_manager = detect_package_manager()
+    # Install third-party frontend packages with the app's package manager.
+    defp install_frontend_packages(igniter) do
+      pkg_manager = detect_package_manager(igniter)
+      components_exist? = Igniter.exists?(igniter, "assets/components.json")
+      shadcn_components_exist? = shadcn_components_exist?(igniter)
 
-      # TanStack Table is required for DataTable component
-      # shadcn components (button, badge, popover, etc.) should already be installed by user
-      packages = "@tanstack/react-table"
-
-      install_cmd =
+      {runtime_cmd, cli_cmd, exec_prefix} =
         case pkg_manager do
-          "bun" -> "cd assets && bun add #{packages}"
-          "pnpm" -> "cd assets && pnpm add #{packages}"
-          "yarn" -> "cd assets && yarn add #{packages}"
-          _ -> "cd assets && npm install #{packages}"
+          "vp" ->
+            vp = vite_plus_prefix()
+
+            {
+              "#{vp} -C assets add @tanstack/react-table@^8.21.3 lucide-react",
+              "#{vp} -C assets add -D shadcn@latest",
+              "#{vp} -C assets exec shadcn"
+            }
+
+          "bun" ->
+            {
+              "cd assets && bun add @tanstack/react-table@^8.21.3 lucide-react",
+              "cd assets && bun add -D shadcn@latest",
+              "cd assets && bunx shadcn"
+            }
+
+          "pnpm" ->
+            {
+              "cd assets && pnpm add @tanstack/react-table@^8.21.3 lucide-react",
+              "cd assets && pnpm add -D shadcn@latest",
+              "cd assets && pnpm exec shadcn"
+            }
+
+          "yarn" ->
+            {
+              "cd assets && yarn add @tanstack/react-table@^8.21.3 lucide-react",
+              "cd assets && yarn add -D shadcn@latest",
+              "cd assets && yarn shadcn"
+            }
+
+          _ ->
+            {
+              "cd assets && npm install @tanstack/react-table@^8.21.3 lucide-react",
+              "cd assets && npm install --save-dev shadcn@latest",
+              "cd assets && npx shadcn"
+            }
         end
 
-      Igniter.add_task(igniter, "cmd", [install_cmd])
+      igniter
+      |> Igniter.add_task("cmd", [runtime_cmd])
+      |> Igniter.add_task("cmd", [cli_cmd])
+      |> maybe_initialize_shadcn(exec_prefix, components_exist?)
+      |> maybe_add_shadcn_components(exec_prefix, shadcn_components_exist?)
     end
 
-    defp detect_package_manager do
+    # Prefer a globally installed Vite+ executable, but keep Vite+ projects
+    # installable on machines that only have npm available. The explicit
+    # version makes the generated installer deterministic and avoids relying
+    # on whichever Vite+ version happens to be resolved by npm at install time.
+    @doc false
+    def vite_plus_prefix(vp_path \\ System.find_executable("vp"))
+
+    def vite_plus_prefix(nil),
+      do: "npm exec --yes --package=vite-plus@0.3.0 -- vp"
+
+    def vite_plus_prefix(_vp_path), do: "vp"
+
+    defp maybe_initialize_shadcn(igniter, _exec_prefix, true), do: igniter
+
+    defp maybe_initialize_shadcn(igniter, exec_prefix, false) do
+      Igniter.add_task(igniter, "cmd", [
+        "#{exec_prefix} init --template vite --base radix --preset nova --yes"
+      ])
+    end
+
+    defp maybe_add_shadcn_components(igniter, _exec_prefix, true), do: igniter
+
+    defp maybe_add_shadcn_components(igniter, exec_prefix, false) do
+      Igniter.add_task(igniter, "cmd", [
+        "#{exec_prefix} add button badge popover dropdown-menu command input dialog sheet --yes"
+      ])
+    end
+
+    @doc false
+    def shadcn_components_exist?(igniter, exists? \\ nil) do
+      exists? = exists? || fn path -> Igniter.exists?(igniter, path) end
+
+      ~w(button badge popover dropdown-menu command input dialog sheet)
+      |> Enum.all?(&exists?.("assets/js/components/ui/#{&1}.tsx"))
+    end
+
+    defp detect_package_manager(igniter) do
       cond do
-        File.exists?("assets/bun.lockb") -> "bun"
+        vite_plus_project?(igniter) -> "vp"
+        File.exists?("assets/bun.lockb") or File.exists?("assets/bun.lock") -> "bun"
         File.exists?("assets/pnpm-lock.yaml") -> "pnpm"
         File.exists?("assets/yarn.lock") -> "yarn"
         File.exists?("assets/package-lock.json") -> "npm"
@@ -481,6 +556,23 @@ if Code.ensure_loaded?(Igniter) do
         System.find_executable("pnpm") -> "pnpm"
         System.find_executable("yarn") -> "yarn"
         true -> "npm"
+      end
+    end
+
+    defp vite_plus_project?(igniter) do
+      case package_json_content(igniter) do
+        {:ok, content} -> String.contains?(content, "vite-plus")
+        _ -> false
+      end
+    end
+
+    defp package_json_content(igniter) do
+      path = "assets/package.json"
+
+      if Rewrite.has_source?(igniter.rewrite, path) do
+        {:ok, igniter.rewrite |> Rewrite.source!(path) |> Rewrite.Source.get(:content)}
+      else
+        File.read(path)
       end
     end
 
@@ -768,15 +860,14 @@ if Code.ensure_loaded?(Igniter) do
         • assets/js/components/flop/FilterValueInput.tsx
         • assets/js/components/flop/FilterValueSelect.tsx
         • assets/js/components/flop/FilterModeToggle.tsx
+        • assets/js/components/flop/SearchInput.tsx
+        • assets/js/components/flop/ConfirmDialog.tsx
         • assets/js/components/flop/Table.tsx
         • assets/js/components/flop/index.ts
       #{table_sample}
       #{table_usage}
-      ## Prerequisites
-
-      These components use shadcn/ui. Ensure you have installed:
-
-          npx shadcn@latest add button badge popover dropdown-menu command input
+      The installer initialized shadcn/ui when needed and added button, badge,
+      popover, dropdown-menu, command, input, dialog, and sheet components.
 
       ## Basic Usage
 

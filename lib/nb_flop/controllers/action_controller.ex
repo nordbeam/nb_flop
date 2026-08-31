@@ -51,9 +51,6 @@ defmodule NbFlop.ActionController do
       {:error, :disabled} ->
         send_json(conn, 422, %{success: false, message: "Action is disabled for this record"})
 
-      {:error, reason} when is_binary(reason) ->
-        send_json(conn, 422, %{success: false, message: reason})
-
       {:error, reason} ->
         send_json(conn, 500, %{success: false, message: inspect(reason)})
     end
@@ -248,7 +245,12 @@ defmodule NbFlop.ActionController do
     end
   end
 
-  defp load_selected_rows(table_module, %{"mode" => "all_except", "ids" => excluded_ids}, params, conn) do
+  defp load_selected_rows(
+         table_module,
+         %{"mode" => "all_except", "ids" => excluded_ids},
+         params,
+         conn
+       ) do
     repo = table_module.repo()
     resource = table_module.resource()
     base = scoped_query(table_module, conn)

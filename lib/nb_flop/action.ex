@@ -123,8 +123,6 @@ defmodule NbFlop.Action do
     fn row, conn -> not visible_fn.(row, conn) end
   end
 
-  defp invert_visibility(nil), do: nil
-
   defp validate_opts!(name, opts) do
     invalid_keys = Keyword.keys(opts) -- @valid_opts
 

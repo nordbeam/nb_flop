@@ -48,6 +48,19 @@ mix igniter.install nb_flop --table
 - `--with-views` - Include saved views support
 - `--with-exports` - Include CSV export support
 
+### Vite+ projects
+
+When `assets/package.json` uses Vite+, the installer prefers a globally
+available `vp` executable. If `vp` is not installed globally, it automatically
+uses npm's official one-shot runner instead:
+
+```bash
+npm exec --yes --package=vite-plus@0.3.0 -- vp -C assets add -D shadcn@latest
+```
+
+This fallback only requires npm and keeps the generated Vite+ commands pinned
+to the installer-supported version.
+
 ---
 
 ## Table DSL (Recommended)

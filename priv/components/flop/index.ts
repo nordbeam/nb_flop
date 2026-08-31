@@ -103,13 +103,3 @@ export type {
   TableViews,
   Selection,
 } from './tableTypes';
-
-// RPC Table (TanStack Query transport)
-export { RpcTable } from './RpcTable';
-export type { RpcTableProps } from './RpcTable';
-export { useRpcTable } from './useRpcTable';
-export type {
-  RpcTableParams,
-  UseRpcTableOptions,
-  UseRpcTableReturn,
-} from './useRpcTable';

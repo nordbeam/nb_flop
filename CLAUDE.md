@@ -69,7 +69,7 @@ Main module with version constant and documentation. No runtime code - this pack
 
 The Igniter-based installer that:
 
-1. **Adds flop dependency** - `{:flop, "~> 0.26"}`
+1. **Adds flop dependency** - `{:flop, "~> 0.28"}`
 2. **Generates serializers** - Four serializers to user's codebase
 3. **Copies components** - 19 React files to assets (shadcn/ui based)
 4. **Installs npm packages** - `@tanstack/react-table`
@@ -89,9 +89,16 @@ source_path = Path.join([priv_dir, "components", "flop"])
 
 Contains React components that use shadcn/ui. Components import from `@/components/ui/*` paths.
 
-**Required shadcn components:**
+The installer initializes shadcn/ui and adds its required components with Vite+.
+For manual component development, run this when `vp` is globally installed:
 ```bash
-npx shadcn@latest add button badge popover dropdown-menu command input
+vp -C assets dlx shadcn@latest add button badge popover dropdown-menu command input
+```
+
+If `vp` is not globally installed, use the same npm bootstrap used by the
+installer:
+```bash
+npm exec --yes --package=vite-plus@0.3.0 -- vp -C assets dlx shadcn@latest add button badge popover dropdown-menu command input
 ```
 
 Components are styled with Tailwind CSS and can be customized after copying to user's codebase.
@@ -283,9 +290,9 @@ mix docs
 ### Manual Testing
 
 1. Create a test Phoenix app with nb_inertia
-2. Install shadcn components:
+2. Install shadcn components with Vite+ (or use the npm fallback if `vp` is not globally installed):
    ```bash
-   cd assets && npx shadcn@latest add button badge popover dropdown-menu command input
+   vp -C assets dlx shadcn@latest add button badge popover dropdown-menu command input
    ```
 3. Add nb_flop as a path dependency:
    ```elixir

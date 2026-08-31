@@ -179,14 +179,9 @@ export interface TableEmptyState {
 
 // Saved view
 export interface TableView {
-  id: string | number;
+  id: string;
   name: string;
-  isPublic: boolean;
-  isDefault: boolean;
-  filters: Record<string, unknown>;
-  sort: Record<string, unknown>;
-  columns: string[];
-  perPage: number | null;
+  default: boolean;
 }
 
 // Views configuration

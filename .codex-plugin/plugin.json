@@ -1,0 +1,22 @@
+{
+  "name": "nb_flop",
+  "version": "0.1.0",
+  "description": "Version-aware Codex guidance for nb_flop tables, pagination, filters, actions, exports, and saved views.",
+  "author": { "name": "Nordbeam", "url": "https://github.com/nordbeam" },
+  "homepage": "https://github.com/nordbeam/nb_flop",
+  "repository": "https://github.com/nordbeam/nb_flop",
+  "license": "MIT",
+  "keywords": ["elixir", "phoenix", "flop", "tables", "pagination"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "nb_flop",
+    "shortDescription": "Build typed Phoenix data tables with Flop",
+    "longDescription": "Install, configure, upgrade, diagnose, and verify nb_flop tables, pagination, filters, row actions, exports, and saved views.",
+    "developerName": "Nordbeam",
+    "category": "Developer Tools",
+    "capabilities": ["Install", "Configure", "Migrate", "Diagnose", "Verify"],
+    "websiteURL": "https://github.com/nordbeam/nb_flop",
+    "brandColor": "#5E3AAE",
+    "defaultPrompt": ["Use $nb-flop to implement or debug a typed Phoenix data table."]
+  }
+}

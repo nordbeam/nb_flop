@@ -285,5 +285,4 @@ defmodule NbFlop.Exporters.CSVExporter do
   defp delimiter_char("\t"), do: ?\t
   defp delimiter_char(char) when is_binary(char), do: String.to_charlist(char) |> hd()
   defp delimiter_char(char) when is_integer(char), do: char
-
 end

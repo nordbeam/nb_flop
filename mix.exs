@@ -29,10 +29,10 @@ defmodule NbFlop.MixProject do
   defp deps do
     [
       # Core dependency
-      {:flop, "~> 0.26"},
+      {:flop, "~> 0.28"},
 
       # Installer framework
-      {:igniter, "~> 0.7", optional: true},
+      {:igniter, "~> 0.8", optional: true},
 
       # Optional integrations
       {:nb_serializer, github: "nordbeam/nb_serializer", optional: true},
@@ -45,7 +45,7 @@ defmodule NbFlop.MixProject do
       {:csv, "~> 3.2"},
 
       # Documentation
-      {:ex_doc, "~> 0.31", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.40", only: :dev, runtime: false}
     ]
   end
 
@@ -69,8 +69,6 @@ defmodule NbFlop.MixProject do
         priv
         mix.exs
         README.md
-        LICENSE
-        CHANGELOG.md
         .formatter.exs
       )
     ]
@@ -81,7 +79,7 @@ defmodule NbFlop.MixProject do
       main: "readme",
       source_url: @source_url,
       source_ref: "v#{@version}",
-      extras: ["README.md", "CHANGELOG.md"]
+      extras: ["README.md"]
     ]
   end
 end

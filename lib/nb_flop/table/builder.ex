@@ -719,6 +719,7 @@ defmodule NbFlop.Table.Builder do
       nil ->
         # Check nb_inertia config if available
         mod = Module.concat([NbInertia, Config])
+
         if Code.ensure_loaded?(mod) and function_exported?(mod, :camelize_props, 0) do
           mod.camelize_props()
         else
