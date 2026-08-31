@@ -13,8 +13,8 @@ if Code.ensure_loaded?(Igniter) do
     A Phoenix application with frontend assets is required. The installer
     initializes shadcn/ui when needed and adds every required component.
     For Vite+ projects, a globally installed `vp` is preferred. When it is
-    unavailable, the installer runs the pinned Vite+ CLI through npm with
-    `npm exec --yes --package=vite-plus@0.3.0 -- vp ...`.
+    unavailable, the installer runs the pinned Vite+ CLI through Corepack with
+    `corepack npm@12.0.2 exec --yes --package=vite-plus@0.3.0 -- vp ...`.
 
     ## Usage
 
@@ -52,6 +52,9 @@ if Code.ensure_loaded?(Igniter) do
     """
 
     use Igniter.Mix.Task
+
+    @vite_plus_version "0.3.0"
+    @npm_version "12.0.2"
 
     @task_group :nb
     @schema [
@@ -496,9 +499,9 @@ if Code.ensure_loaded?(Igniter) do
 
           _ ->
             {
-              "cd assets && npm install @tanstack/react-table@^8.21.3 lucide-react",
-              "cd assets && npm install --save-dev shadcn@latest",
-              "cd assets && npx shadcn"
+              "cd assets && corepack npm@#{@npm_version} install @tanstack/react-table@^8.21.3 lucide-react",
+              "cd assets && corepack npm@#{@npm_version} install --save-dev shadcn@latest",
+              "cd assets && corepack npm@#{@npm_version} exec shadcn"
             }
         end
 
@@ -510,14 +513,15 @@ if Code.ensure_loaded?(Igniter) do
     end
 
     # Prefer a globally installed Vite+ executable, but keep Vite+ projects
-    # installable on machines that only have npm available. The explicit
-    # version makes the generated installer deterministic and avoids relying
-    # on whichever Vite+ version happens to be resolved by npm at install time.
+    # installable on machines that only have Corepack/npm available. The
+    # explicit versions make the generated installer deterministic and avoid
+    # relying on whichever Vite+ or npm version happens to be available.
     @doc false
     def vite_plus_prefix(vp_path \\ System.find_executable("vp"))
 
     def vite_plus_prefix(nil),
-      do: "npm exec --yes --package=vite-plus@0.3.0 -- vp"
+      do:
+        "corepack npm@#{@npm_version} exec --yes --package=vite-plus@#{@vite_plus_version} -- vp"
 
     def vite_plus_prefix(_vp_path), do: "vp"
 

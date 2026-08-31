@@ -159,7 +159,7 @@ Users must have these shadcn components installed:
 
 Install command:
 ```bash
-npx shadcn@latest add button badge popover dropdown-menu command input
+corepack npm@12.0.2 exec --yes shadcn@latest add button badge popover dropdown-menu command input
 ```
 
 ## Installer Changes Detail
@@ -249,8 +249,8 @@ end
 2. Install shadcn components:
    ```bash
    cd assets
-   npx shadcn@latest init
-   npx shadcn@latest add button badge popover dropdown-menu command input
+   corepack npm@12.0.2 exec --yes shadcn@latest init
+   corepack npm@12.0.2 exec --yes shadcn@latest add button badge popover dropdown-menu command input
    ```
 3. Run `mix nb_flop.install`
 4. Verify:

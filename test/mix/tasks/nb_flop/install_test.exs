@@ -39,16 +39,17 @@ defmodule Mix.Tasks.NbFlop.InstallTest do
       assert Install.vite_plus_prefix("/usr/local/bin/vp") == "vp"
     end
 
-    test "falls back to npm exec when vp is unavailable" do
+    test "falls back to Corepack npm 12 when vp is unavailable" do
       assert Install.vite_plus_prefix(nil) ==
-               "npm exec --yes --package=vite-plus@0.3.0 -- vp"
+               "corepack npm@12.0.2 exec --yes --package=vite-plus@0.3.0 -- vp"
     end
 
-    test "keeps the fallback pinned and documented in the installer" do
+    test "keeps the Corepack/npm 12 fallback pinned and documented" do
       source = File.read!("lib/mix/tasks/nb_flop.install.ex")
 
       assert source =~ "System.find_executable(\"vp\")"
-      assert source =~ "npm exec --yes --package=vite-plus@0.3.0 -- vp"
+      assert source =~ "corepack npm@12.0.2 exec --yes --package=vite-plus@0.3.0 -- vp"
+      refute source =~ "npm exec --yes --package=vite-plus@0.3.0 -- vp"
     end
   end
 

@@ -95,10 +95,10 @@ For manual component development, run this when `vp` is globally installed:
 vp -C assets dlx shadcn@latest add button badge popover dropdown-menu command input
 ```
 
-If `vp` is not globally installed, use the same npm bootstrap used by the
-installer:
+If `vp` is not globally installed, use the same Corepack/npm 12 bootstrap used
+by the installer:
 ```bash
-npm exec --yes --package=vite-plus@0.3.0 -- vp -C assets dlx shadcn@latest add button badge popover dropdown-menu command input
+corepack npm@12.0.2 exec --yes --package=vite-plus@0.3.0 -- vp -C assets dlx shadcn@latest add button badge popover dropdown-menu command input
 ```
 
 Components are styled with Tailwind CSS and can be customized after copying to user's codebase.
@@ -290,9 +290,12 @@ mix docs
 ### Manual Testing
 
 1. Create a test Phoenix app with nb_inertia
-2. Install shadcn components with Vite+ (or use the npm fallback if `vp` is not globally installed):
+2. Install shadcn components with Vite+ (or use the Corepack/npm 12 fallback if `vp` is not globally installed):
    ```bash
    vp -C assets dlx shadcn@latest add button badge popover dropdown-menu command input
+   ```
+   ```bash
+   corepack npm@12.0.2 exec --yes --package=vite-plus@0.3.0 -- vp -C assets dlx shadcn@latest add button badge popover dropdown-menu command input
    ```
 3. Add nb_flop as a path dependency:
    ```elixir

@@ -52,14 +52,14 @@ mix igniter.install nb_flop --table
 
 When `assets/package.json` uses Vite+, the installer prefers a globally
 available `vp` executable. If `vp` is not installed globally, it automatically
-uses npm's official one-shot runner instead:
+bootstraps the pinned Vite+ CLI through Corepack and npm 12 instead:
 
 ```bash
-npm exec --yes --package=vite-plus@0.3.0 -- vp -C assets add -D shadcn@latest
+corepack npm@12.0.2 exec --yes --package=vite-plus@0.3.0 -- vp -C assets add -D shadcn@latest
 ```
 
-This fallback only requires npm and keeps the generated Vite+ commands pinned
-to the installer-supported version.
+This fallback requires Corepack and keeps both npm and Vite+ pinned to the
+installer-supported versions.
 
 ---
 
