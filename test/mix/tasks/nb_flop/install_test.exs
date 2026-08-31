@@ -34,6 +34,15 @@ defmodule Mix.Tasks.NbFlop.InstallTest do
     assert "priv" in Mix.Project.config()[:package][:files]
   end
 
+  test "hex package includes usage rules and the prebuilt skill" do
+    package_files = Mix.Project.config()[:package][:files]
+
+    assert "usage-rules.md" in package_files
+    assert "usage-rules" in package_files
+    assert File.exists?("usage-rules/skills/nb-flop/SKILL.md")
+    refute File.exists?("skills/nb-flop/SKILL.md")
+  end
+
   describe "Vite+ CLI bootstrap" do
     test "prefers a globally installed vp executable" do
       assert Install.vite_plus_prefix("/usr/local/bin/vp") == "vp"

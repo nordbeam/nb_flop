@@ -69,6 +69,8 @@ defmodule NbFlop.MixProject do
         priv
         mix.exs
         README.md
+        usage-rules.md
+        usage-rules
         .formatter.exs
       )
     ]
@@ -79,7 +81,8 @@ defmodule NbFlop.MixProject do
       main: "readme",
       source_url: @source_url,
       source_ref: "v#{@version}",
-      extras: ["README.md"]
+      extras: ["README.md", "usage-rules.md"],
+      groups_for_extras: [Guides: ["usage-rules.md"]]
     ]
   end
 end
